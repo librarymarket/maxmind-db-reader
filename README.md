@@ -22,7 +22,7 @@ trying to read.
 
 1. Create an instance of the database reader by providing the path to your
 MaxMind database file on disk.
-2. Invoke `Reader::searchForAddress(string $ip_address, int &$delta = 0): array`
+2. Invoke `Reader::searchForAddress(string $ip_address, int &$depth = 0): array`
 to retrieve information about the IP address from the database.
     - If the IP address wasn't found in the database, an empty array is
     returned.
