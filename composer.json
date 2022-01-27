@@ -1,0 +1,33 @@
+{
+    "name": "librarymarket/maxmind-db-reader",
+    "description": "An unofficial library to facilitate reading the MaxMind database file format.",
+    "homepage": "https://github.com/librarymarket/maxmind-db-reader",
+    "keywords": ["database", "db", "maxmind", "reader"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Clay Freeman",
+            "email": "clay@librarymarket.com",
+            "homepage": "https://www.librarymarket.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "discard-changes": true
+    },
+    "autoload": {
+        "psr-4": {
+            "LibraryMarket\\MaxMind\\Database\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=7.3"
+    },
+    "suggest": {
+        "ext-bcmath": "To support the decoding of unsigned integers of more than 31 bits in length",
+        "ext-gmp": "To support the decoding of unsigned integers of more than 31 bits in length"
+    }
+}
