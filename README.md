@@ -22,10 +22,11 @@ trying to read.
 MaxMind database file on disk.
 2. Invoke `Reader::searchForAddress(string $ip_address, int &$delta = 0): array`
 to retrieve information about the IP address from the database.
-  - If the IP address wasn't found in the database, an empty array is returned.
-  - If the optional second argument is supplied, it will be populated with the
-  bit depth at which the address was found. This is the netmask of the resulting
-  information.
+    - If the IP address wasn't found in the database, an empty array is
+    returned.
+    - If the optional second argument is supplied, it will be populated with the
+    bit depth at which the address was found. This is the netmask of the
+    resulting information.
 
 ```php
 $reader = new \LibraryMarket\MaxMind\Database\Reader('/path/to/database.mmdb');
