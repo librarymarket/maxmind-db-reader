@@ -75,6 +75,10 @@ class Reader {
     $this->stat = $stat;
 
     $this->getMetadata();
+
+    if (!\in_array($this->metadata['ip_version'], [4, 6], TRUE)) {
+      throw new \RuntimeException('Unsupported database IP version');
+    }
   }
 
   /**
@@ -268,6 +272,22 @@ class Reader {
   }
 
   /**
+   * Get the bit depth of the search tree.
+   *
+   * @return int
+   *   The bit depth of the search tree.
+   */
+  protected function getSearchTreeBitDepth(): int {
+    switch ($this->metadata['ip_version']) {
+      case 4:
+        return 32;
+
+      case 6;
+        return 128;
+    }
+  }
+
+  /**
    * Get the size of the search tree in bytes.
    *
    * The search tree size is calculated by multiplying the node count for this
@@ -366,12 +386,13 @@ class Reader {
       throw new \InvalidArgumentException('$ip_address is invalid');
     }
 
-    // Pad shorter addresses to be 128 bits long.
-    $ip_address = \str_pad($ip_address, 16, "\x00", \STR_PAD_LEFT);
+    $ip_address_length = $this->getSearchTreeBitDepth() >> 3;
+    $ip_address = \substr(\str_pad($ip_address, $ip_address_length, "\x00", \STR_PAD_LEFT), -$ip_address_length);
+
     $node_count = $this->getNodeCount();
 
     // Iterate over each bit in the address to traverse the binary search tree.
-    for ($depth = 0, $node = 0; $depth < 128 && $node < $node_count; ++$depth) {
+    for ($depth = 0, $node = 0; $depth < $this->getSearchTreeBitDepth() && $node < $node_count; ++$depth) {
       $byte = \unpack('C', $ip_address[$depth >> 3])[1];
       $bit = 1 & ($byte >> (7 - ($depth & 0b00000111)));
 
