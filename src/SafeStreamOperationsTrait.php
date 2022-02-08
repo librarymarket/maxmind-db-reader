@@ -37,7 +37,7 @@ trait SafeStreamOperationsTrait {
    *   The length to read.
    * @param bool $strict
    *   Whether the length of data read from the stream should match the
-   *   requested length (default: FALSE).
+   *   requested length (default: TRUE).
    *
    * @throws \RuntimeException
    *   If the read operation fails.
@@ -45,7 +45,7 @@ trait SafeStreamOperationsTrait {
    * @return string
    *   The data that was read.
    */
-  protected function read($stream, int $length, bool $strict = FALSE): string {
+  protected function read($stream, int $length, bool $strict = TRUE): string {
     if (!\is_resource($stream) || FALSE === $data = \fread($stream, $length)) {
       throw new \RuntimeException('Unable to read from the supplied stream');
     }

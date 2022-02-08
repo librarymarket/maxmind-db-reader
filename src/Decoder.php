@@ -124,7 +124,7 @@ class Decoder {
     $this->seek($this->stream, $offset++);
 
     // Extract the control byte from the stream.
-    $control_byte = \unpack('C', $this->read($this->stream, 1, TRUE))[1];
+    $control_byte = \unpack('C', $this->read($this->stream, 1))[1];
 
     // Process the control byte sub-fields.
     //
@@ -191,7 +191,7 @@ class Decoder {
    *   the second element is the new stream offset after decoding.
    */
   protected function decodeBytes(int $size, int $offset): array {
-    return [$this->read($this->stream, $size, TRUE), $offset + $size];
+    return [$this->read($this->stream, $size), $offset + $size];
   }
 
   /**
@@ -211,7 +211,7 @@ class Decoder {
       throw new \RuntimeException('Unexpected double size: ' . $size);
     }
 
-    $result = \unpack('E', $this->read($this->stream, $size, TRUE))[1];
+    $result = \unpack('E', $this->read($this->stream, $size))[1];
     return [$result, $offset + $size];
   }
 
@@ -232,7 +232,7 @@ class Decoder {
       throw new \RuntimeException('Unexpected float size: ' . $size);
     }
 
-    $result = \unpack('G', $this->read($this->stream, $size, TRUE))[1];
+    $result = \unpack('G', $this->read($this->stream, $size))[1];
     return [$result, $offset + $size];
   }
 
@@ -259,7 +259,7 @@ class Decoder {
 
     // The specification guarantees that signed integers shorter than 4 bytes
     // are positive, so we don't need to worry about sign extension here.
-    $data = $this->read($this->stream, $size, TRUE);
+    $data = $this->read($this->stream, $size);
     $data = \str_pad($data, 4, "\x00", \STR_PAD_LEFT);
 
     if ($this->littleEndian) {
@@ -312,7 +312,7 @@ class Decoder {
   protected function decodePointer(int $size, $offset): array {
     $pointer = $this->baseAddress + self::POINTER_SIZE_OFFSET_MAPPING[$delta = $size >> 3];
 
-    $data = \chr($size & 0b00000111) . $this->read($this->stream, $delta += 1, TRUE);
+    $data = \chr($size & 0b00000111) . $this->read($this->stream, $delta += 1);
     $data = \str_pad(\substr($data, -4), 4, "\x00", \STR_PAD_LEFT);
 
     if (($pointer += \unpack('N', $data)[1]) < 0) {
@@ -343,7 +343,7 @@ class Decoder {
       return [0, $offset];
     }
 
-    $data = $this->read($this->stream, $size, TRUE);
+    $data = $this->read($this->stream, $size);
     $math = $this->getMathImplementationForUint($data, $size);
 
     $result = 0;
@@ -411,7 +411,7 @@ class Decoder {
 
     // Check if an extended data type is being used for this field.
     if ($data_type === 0) {
-      $data_type = 7 + \unpack('C', $this->read($this->stream, $delta = 1, TRUE))[1];
+      $data_type = 7 + \unpack('C', $this->read($this->stream, $delta = 1))[1];
 
       // Check if an invalid data type was produced.
       if (!\array_key_exists($data_type, self::DATA_TYPE_DECODER_MAPPING)) {
@@ -447,19 +447,19 @@ class Decoder {
     // Process extended length values.
     switch ($size) {
       case 29:
-        $data = $this->read($this->stream, $delta = 1, TRUE);
+        $data = $this->read($this->stream, $delta = 1);
         $size = 29 + \unpack('C', $data)[1];
 
         break;
 
       case 30:
-        $data = $this->read($this->stream, $delta = 2, TRUE);
+        $data = $this->read($this->stream, $delta = 2);
         $size = 285 + \unpack('n', $data)[1];
 
         break;
 
       case 31:
-        $data = $this->read($this->stream, $delta = 3, TRUE);
+        $data = $this->read($this->stream, $delta = 3);
         $size = 65821 + \unpack('N', "\x00" . $data)[1];
 
         break;

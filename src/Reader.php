@@ -449,7 +449,7 @@ class Reader {
 
       // The read length should be double the marker size to catch markers that
       // could potentially overlap a read boundary.
-      $data = $this->read($this->stream, $marker_size * 2);
+      $data = $this->read($this->stream, $marker_size * 2, FALSE);
 
       if (FALSE !== $pos = \strpos($data, $marker)) {
         return $chunk + $pos + $marker_size;
