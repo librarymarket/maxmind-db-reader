@@ -371,6 +371,10 @@ class Reader {
   /**
    * Attempt to find the supplied address in the binary search tree.
    *
+   * If an IPv6 address is supplied, but the underlying database only contains
+   * IPv4 addresses, then the supplied address will be truncated to 32 bits
+   * (using the least significant bits of the address).
+   *
    * @param string $ip_address
    *   The IP address in human-readable format.
    * @param int $depth
