@@ -14,22 +14,7 @@ use LibraryMarket\MaxMind\Database\Math\Native;
 class Decoder {
 
   use SafeStreamOperationsTrait;
-
-  const DATA_TYPE_DECODER_MAPPING = [
-    1 => 'decodePointer',
-    2 => 'decodeBytes',
-    3 => 'decodeDouble',
-    4 => 'decodeBytes',
-    5 => 'decodeUint',
-    6 => 'decodeUint',
-    7 => 'decodeMap',
-    8 => 'decodeInt',
-    9 => 'decodeUint',
-    10 => 'decodeUint',
-    11 => 'decodeArray',
-    14 => 'decodeBoolean',
-    15 => 'decodeFloat',
-  ];
+  use SafeUnpackTrait;
 
   const POINTER_SIZE_OFFSET_MAPPING = [
     0 => 0,
@@ -96,7 +81,7 @@ class Decoder {
     $this->baseAddress = $base_address;
     $this->stream = $stream;
 
-    $this->littleEndian = \unpack('S', "\x01\x00")[1] === 1;
+    $this->littleEndian = \intval($this->unpack('S', "\x01\x00")[1]) === 1;
 
     $this->nativeMath = new Native();
     if (\extension_loaded('bcmath')) {
@@ -113,10 +98,12 @@ class Decoder {
    * @param int $offset
    *   The offset at which the field to be decoded exists.
    *
+   * @throws \UnhandledMatchError
+   *   If the data type of the field is not supported.
    * @throws \RuntimeException
    *   If decoding fails.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -124,7 +111,7 @@ class Decoder {
     $this->seek($this->stream, $offset++);
 
     // Extract the control byte from the stream.
-    $control_byte = \unpack('C', $this->read($this->stream, 1))[1];
+    $control_byte = \intval($this->unpack('C', $this->read($this->stream, 1))[1]);
 
     // Process the control byte sub-fields.
     //
@@ -134,8 +121,21 @@ class Decoder {
     $size = $this->processControlByteSize($control_byte, $offset);
 
     // Delegate the remainder of decoding to a type-specific method.
-    $callback = [$this, self::DATA_TYPE_DECODER_MAPPING[$data_type]];
-    return $callback($size, $offset);
+    return match ($data_type) {
+      1 => $this->decodePointer($size, $offset),
+      2 => $this->decodeBytes($size, $offset),
+      3 => $this->decodeDouble($size, $offset),
+      4 => $this->decodeBytes($size, $offset),
+      5 => $this->decodeUint($size, $offset),
+      6 => $this->decodeUint($size, $offset),
+      7 => $this->decodeMap($size, $offset),
+      8 => $this->decodeInt($size, $offset),
+      9 => $this->decodeUint($size, $offset),
+      10 => $this->decodeUint($size, $offset),
+      11 => $this->decodeArray($size, $offset),
+      14 => $this->decodeBoolean($size, $offset),
+      15 => $this->decodeFloat($size, $offset),
+    };
   }
 
   /**
@@ -146,7 +146,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -170,7 +170,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -186,7 +186,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -202,7 +202,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -211,7 +211,7 @@ class Decoder {
       throw new \RuntimeException('Unexpected double size: ' . $size);
     }
 
-    $result = \unpack('E', $this->read($this->stream, $size))[1];
+    $result = \floatval($this->unpack('E', $this->read($this->stream, $size))[1]);
     return [$result, $offset + $size];
   }
 
@@ -223,7 +223,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -232,7 +232,7 @@ class Decoder {
       throw new \RuntimeException('Unexpected float size: ' . $size);
     }
 
-    $result = \unpack('G', $this->read($this->stream, $size))[1];
+    $result = \floatval($this->unpack('G', $this->read($this->stream, $size))[1]);
     return [$result, $offset + $size];
   }
 
@@ -244,7 +244,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -266,7 +266,7 @@ class Decoder {
       $data = \strrev($data);
     }
 
-    return [\unpack('l', $data)[1], $offset + $size];
+    return [\intval($this->unpack('l', $data)[1]), $offset + $size];
   }
 
   /**
@@ -277,7 +277,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -305,17 +305,25 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @throws \UnhandledMatchError
+   *   If the pointer size is not supported.
+   *
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
   protected function decodePointer(int $size, $offset): array {
-    $pointer = $this->baseAddress + self::POINTER_SIZE_OFFSET_MAPPING[$delta = $size >> 3];
+    $pointer = $this->baseAddress + match($delta = $size >> 3) {
+      0 => 0,
+      1 => 2048,
+      2 => 526336,
+      3 => 0,
+    };
 
     $data = \chr($size & 0b00000111) . $this->read($this->stream, $delta += 1);
     $data = \str_pad(\substr($data, -4), 4, "\x00", \STR_PAD_LEFT);
 
-    if (($pointer += \unpack('N', $data)[1]) < 0) {
+    if (($pointer += \intval($this->unpack('N', $data)[1])) < 0) {
       throw new \RuntimeException('Unable to decode pointer due to platform limitations');
     }
 
@@ -330,7 +338,7 @@ class Decoder {
    * @param int $offset
    *   The offset at which the stream was left.
    *
-   * @return array
+   * @return mixed[]
    *   The result of the decoding operation. The first element is the value, and
    *   the second element is the new stream offset after decoding.
    */
@@ -350,7 +358,7 @@ class Decoder {
 
     for ($i = 0; $i < $size; ++$i) {
       $result = $math->lshift($result, 8);
-      $result = $math->add($result, \unpack('C', $data[$i])[1]);
+      $result = $math->add($result, \intval($this->unpack('C', $data[$i])[1]));
     }
 
     return [$result, $offset + $size];
@@ -380,7 +388,7 @@ class Decoder {
       return $this->nativeMath;
     }
 
-    if ($size === \PHP_INT_SIZE && \unpack('C', $data[0])[1] ^ 0b1000000) {
+    if ($size === \PHP_INT_SIZE && \intval($this->unpack('C', $data[0])[1]) ^ 0b1000000) {
       // Since this value can also fit within a signed integer, use native math.
       return $this->nativeMath;
     }
@@ -411,12 +419,7 @@ class Decoder {
 
     // Check if an extended data type is being used for this field.
     if ($data_type === 0) {
-      $data_type = 7 + \unpack('C', $this->read($this->stream, $delta = 1))[1];
-
-      // Check if an invalid data type was produced.
-      if (!\array_key_exists($data_type, self::DATA_TYPE_DECODER_MAPPING)) {
-        throw new \RuntimeException('Unknown data type: ' . $data_type);
-      }
+      $data_type = 7 + \intval($this->unpack('C', $this->read($this->stream, $delta = 1))[1]);
     }
 
     // Increment the supplied offset by the incurred read delta (if any).
@@ -448,19 +451,19 @@ class Decoder {
     switch ($size) {
       case 29:
         $data = $this->read($this->stream, $delta = 1);
-        $size = 29 + \unpack('C', $data)[1];
+        $size = 29 + \intval($this->unpack('C', $data)[1]);
 
         break;
 
       case 30:
         $data = $this->read($this->stream, $delta = 2);
-        $size = 285 + \unpack('n', $data)[1];
+        $size = 285 + \intval($this->unpack('n', $data)[1]);
 
         break;
 
       case 31:
         $data = $this->read($this->stream, $delta = 3);
-        $size = 65821 + \unpack('N', "\x00" . $data)[1];
+        $size = 65821 + \intval($this->unpack('N', "\x00" . $data)[1]);
 
         break;
 

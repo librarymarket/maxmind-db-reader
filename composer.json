@@ -24,7 +24,10 @@
         }
     },
     "require": {
-        "php": ">=7.3"
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.8"
     },
     "suggest": {
         "ext-bcmath": "To support the decoding of unsigned integers of more than 31 bits in length",

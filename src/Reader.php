@@ -10,6 +10,7 @@ namespace LibraryMarket\MaxMind\Database;
 class Reader {
 
   use SafeStreamOperationsTrait;
+  use SafeUnpackTrait;
 
   const DATA_SECTION_SEPARATOR_SIZE = 16;
 
@@ -26,7 +27,7 @@ class Reader {
   /**
    * An associative array of metadata for the database.
    *
-   * @var array
+   * @var mixed[]
    */
   protected $metadata;
 
@@ -42,7 +43,7 @@ class Reader {
   /**
    * The database file statistics.
    *
-   * @var array
+   * @var mixed[]
    */
   protected $stat;
 
@@ -74,22 +75,16 @@ class Reader {
 
     $this->stat = $stat;
 
-    $this->getMetadata();
+    if (NULL === $metadata_offset = $this->searchForMetadataOffset()) {
+      throw new \RuntimeException('Unable to determine metadata offset');
+    }
+
+    $this->metadataOffset = $metadata_offset;
+    $this->metadata = $this->loadMetadata();
 
     if (!\in_array($this->metadata['ip_version'], [4, 6], TRUE)) {
       throw new \RuntimeException('Unsupported database IP version');
     }
-  }
-
-  /**
-   * Destructs a Reader object.
-   */
-  public function __destruct() {
-    if (\is_resource($this->stream)) {
-      \fclose($this->stream);
-    }
-
-    $this->stream = NULL;
   }
 
   /**
@@ -105,42 +100,20 @@ class Reader {
   /**
    * Get the metadata for the open database.
    *
-   * An exception may be thrown on the first invocation if an error occurs while
-   * loading the metadata from the database.
-   *
-   * Upon the first successful invocation, the result will be cached.
-   *
-   * @return array
+   * @return mixed[]
    *   The database metadata.
    */
   public function getMetadata(): array {
-    if (!isset($this->metadata)) {
-      $this->metadata = $this->loadMetadata();
-    }
-
     return $this->metadata;
   }
 
   /**
    * Get the offset of the metadata section.
    *
-   * An exception may be thrown on the first invocation if an error occurs while
-   * searching for the metadata section in the database.
-   *
-   * Upon the first successful invocation, the result will be cached.
-   *
    * @return int
    *   The metadata section offset.
    */
   protected function getMetadataOffset(): int {
-    if (!isset($this->metadataOffset)) {
-      $this->metadataOffset = $this->searchForMetadataOffset() ?? -1;
-    }
-
-    if ($this->metadataOffset < 0) {
-      throw new \RuntimeException('Unable to determine metadata offset');
-    }
-
     return $this->metadataOffset;
   }
 
@@ -274,17 +247,17 @@ class Reader {
   /**
    * Get the bit depth of the search tree.
    *
+   * @throws \UnhandledMatchError
+   *   If the IP version reported by the database is not supported.
+   *
    * @return int
    *   The bit depth of the search tree.
    */
   protected function getSearchTreeBitDepth(): int {
-    switch ($this->metadata['ip_version']) {
-      case 4:
-        return 32;
-
-      case 6:
-        return 128;
-    }
+    return match ($this->metadata['ip_version']) {
+      4 => 32,
+      6 => 128,
+    };
   }
 
   /**
@@ -320,12 +293,12 @@ class Reader {
   /**
    * Load the metadata section from the open database.
    *
-   * @return array
+   * @return mixed[]
    *   The metadata loaded from the database.
    */
   protected function loadMetadata(): array {
-    $decoder = new Decoder($this->stream, $offset = $this->getMetadataOffset());
-    $decoded = $decoder->decode($offset);
+    $decoder = new Decoder($this->stream, $this->metadataOffset);
+    $decoded = $decoder->decode($this->metadataOffset);
 
     return $decoded[0];
   }
@@ -348,7 +321,7 @@ class Reader {
     $this->seek($this->stream, $this->getRecordOffset($node, $index));
 
     $value = $this->read($this->stream, $this->getRecordSize(), TRUE);
-    $value = \unpack('N', \str_pad($value, 4, "\x00", \STR_PAD_LEFT))[1];
+    $value = \intval($this->unpack('N', \str_pad($value, 4, "\x00", \STR_PAD_LEFT))[1]);
 
     // 28-bit records require special handling.
     if ($this->getRecordBitLength() === 28) {
@@ -380,7 +353,7 @@ class Reader {
    * @param int $depth
    *   An output parameter used to report the tree depth of the address.
    *
-   * @return array
+   * @return mixed[]
    *   The record that corresponds with the supplied address. If the address was
    *   not found, this value will be empty.
    */
@@ -397,7 +370,7 @@ class Reader {
 
     // Iterate over each bit in the address to traverse the binary search tree.
     for ($depth = 0, $node = 0; $depth < $this->getSearchTreeBitDepth() && $node < $node_count; ++$depth) {
-      $byte = \unpack('C', $ip_address[$depth >> 3])[1];
+      $byte = \intval($this->unpack('C', $ip_address[$depth >> 3])[1]);
       $bit = 1 & ($byte >> (7 - ($depth & 0b00000111)));
 
       $node = $this->getRecordValueByIndex($node, $bit);

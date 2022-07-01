@@ -1,5 +1,6 @@
 # MaxMind DB Reader
 
+![PHPStan](https://github.com/librarymarket/maxmind-db-reader/workflows/PHPStan/badge.svg)
 [![Maintainability](https://api.codeclimate.com/v1/badges/186cc1e8868cddaacccd/maintainability)](https://codeclimate.com/github/librarymarket/maxmind-db-reader/maintainability)
 
 An unofficial library to facilitate reading the MaxMind database file format.

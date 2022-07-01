@@ -39,6 +39,8 @@ trait SafeStreamOperationsTrait {
    *   Whether the length of data read from the stream should match the
    *   requested length (default: TRUE).
    *
+   * @throws \InvalidArgumentException
+   *   If $length is negative.
    * @throws \RuntimeException
    *   If the read operation fails.
    *
@@ -46,6 +48,10 @@ trait SafeStreamOperationsTrait {
    *   The data that was read.
    */
   protected function read($stream, int $length, bool $strict = TRUE): string {
+    if ($length < 0) {
+      throw new \InvalidArgumentException('$length must be non-negative');
+    }
+
     if (!\is_resource($stream) || FALSE === $data = \fread($stream, $length)) {
       throw new \RuntimeException('Unable to read from the supplied stream');
     }
