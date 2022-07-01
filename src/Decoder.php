@@ -16,13 +16,6 @@ class Decoder {
   use SafeStreamOperationsTrait;
   use SafeUnpackTrait;
 
-  const POINTER_SIZE_OFFSET_MAPPING = [
-    0 => 0,
-    1 => 2048,
-    2 => 526336,
-    3 => 0,
-  ];
-
   /**
    * The base address used to resolve pointers.
    *
