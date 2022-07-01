@@ -282,7 +282,7 @@ class Reader {
       case 4:
         return 32;
 
-      case 6;
+      case 6:
         return 128;
     }
   }
